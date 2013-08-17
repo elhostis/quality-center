@@ -10,7 +10,7 @@ Installation
 
 Add this line to your application's Gemfile:
 
-    gem 'quality_center', :git => 'git://github.com/Pearson-AI/quality-center.git'
+    gem 'quality_center', :git => 'git://github.com/brasic/quality-center.git'
 
 And then execute:
 
