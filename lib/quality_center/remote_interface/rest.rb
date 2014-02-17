@@ -1,9 +1,9 @@
 require 'httparty'
 require 'logger'
 require 'active_support/core_ext/hash'
-require 'qa/quality_center/constants'
-require 'qa/quality_center/remote_interface/exceptions'
-require 'qa/quality_center/remote_interface/generic_entity_parser'
+require 'quality_center/constants'
+require 'quality_center/remote_interface/exceptions'
+require 'quality_center/remote_interface/generic_entity_parser'
 
 module QualityCenter
   module RemoteInterface
