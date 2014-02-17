@@ -1,9 +1,9 @@
 require 'httparty'
 require 'logger'
 require 'active_support/core_ext/hash'
-require 'quality_center/constants'
-require 'quality_center/remote_interface/exceptions'
-require 'quality_center/remote_interface/generic_entity_parser'
+require 'qa/quality_center/constants'
+require 'qa/quality_center/remote_interface/exceptions'
+require 'qa/quality_center/remote_interface/generic_entity_parser'
 
 module QualityCenter
   module RemoteInterface
@@ -29,12 +29,14 @@ module QualityCenter
      
       # User / Pass required, logger optional.  Initialize a blank cookie.
       def initialize(opts={})
-        raise ArgumentError 'No User/Pass' unless opts[:user] && opts[:password]
+        raise ArgumentError.new('No User/Pass') unless opts[:user] && opts[:password]
+        raise ArgumentError.new('No Domain/Project') unless opts[:domain] && opts[:project]
 
         @logger = opts[:logger] || Logger.new(STDOUT)
-        @login  = { :j_username => opts[:user], 
-                    :j_password => opts[:password] }
+        @login  = { :j_username => opts[:user], :j_password => opts[:password] }
         @cookie = ''
+        @domain = opts[:domain]
+        @project = opts[:project]
       end
 
       # Log in to the QC server using the credentials set at initialization.
@@ -81,6 +83,32 @@ module QualityCenter
         return opts[:raw] ? res.response.body : res.parsed_response
       end
 
+      # Post the contents of a path, respecting authentication cookies.
+      # 
+      # path - The url fragment to post.  Will be concatenated with PREFIX
+      # opts - :prefix - The string to prepend to the path
+      #                  default: PREFIX
+      #        :raw    - Whether to return unprocessed raw XML, or a parsed hash
+      #                  default: false
+      #        :body   - The XML content to post
+      # Examples
+      #
+      #   auth_post '/entities', body:<MyData>
+      #   # => (array of Entity hashes)
+      #
+      #   auth_get '/somethings', raw:true
+      #   # => "<xml><somethings></somethings></xml>"
+      #
+      # Returns a hash or string representing the requested resource.
+      def auth_post(path,opts={})
+        opts.reverse_merge!(prefix:PREFIX, raw:false)
+        url = opts[:prefix] + path
+        assert_valid(res = stateful_post(url,opts) )
+
+        # return raw xml if caller wants it,    otherwise a hash.
+        return opts[:raw] ? res.response.body : res.parsed_response
+      end
+      
       # The list of QC users.
       def users(opts={})
         @users ||= scoped_get('/customization/users',opts)
@@ -91,10 +119,9 @@ module QualityCenter
       # Returns a boolean indicating whether QC likes us.
       def authenticated?
         return false if @cookie.empty?
-        case self.class.get('/qcbin/rest/is-authenticated',
-                                   headers: {'Cookie' => @cookie}).response.code
-        when '200' then true
-        else false
+        case self.class.get('/qcbin/rest/is-authenticated', headers: {'Cookie' => @cookie}).response.code
+          when '200' then true
+          else false
         end
       end
 
@@ -105,17 +132,22 @@ module QualityCenter
         generic_entity_fetch(meth,opts)
       end
 
-      # Get a path scoped to a predefined domain and project
+      # Get a path scoped
       def scoped_get(path,opts={})
-        auth_get(SCOPE+path,opts)
+        auth_get(SCOPE % { :domain => @domain, :project => @project } + path, opts)
       end
 
+      # Post a path scoped
+      def scoped_post(path,opts={})
+        auth_post(SCOPE % { :domain => @domain, :project => @project } + path, opts)
+      end
+      
       private
 
       # Check that a HTTP response is OK.
       def assert_valid(res)
         raise LoginError, res.code          if res.code == 401
-        raise UnrecognizedResponse,res.code if res.code != 200
+        raise UnrecognizedResponse,res.code if res.code != 200 && res.code != 201
       end
 
       # Get somethig using the cookie
@@ -128,7 +160,18 @@ module QualityCenter
 
         self.class.get(url, get_opts).log(@logger)
       end
+      
+      # Post somethig using the cookie
+      def stateful_post(url,opts)
+        raise NotAuthenticated if @cookie.empty?
+        raise NoDataToPost unless opts[:body]
 
+        self.class.post(
+          url,
+          body:    opts[:body],
+          headers: {'Cookie' => @cookie, 'Content-Type' => 'application/xml'}
+        ).log(@logger)
+      end
     end
   end
 end
