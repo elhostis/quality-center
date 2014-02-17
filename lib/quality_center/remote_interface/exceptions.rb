@@ -4,6 +4,7 @@ module QualityCenter
       class NotAuthenticated < RuntimeError;end
       class LoginError < RuntimeError;end
       class UnrecognizedResponse < RuntimeError;end
+      class NoDataToPost < RuntimeError;end
     end
   end
 end
