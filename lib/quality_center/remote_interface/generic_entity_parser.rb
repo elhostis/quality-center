@@ -25,8 +25,13 @@ module QualityCenter
         res = scoped_get("/#{entity_type}",opts)
 
         entities = begin
-                     res['Entities']['Entity'].map do |x|
-                       response_to_hash(x,opts.merge(value_field:"Value",entity_type:entity_type)) 
+                     results = res['Entities']['Entity']
+                     if results.class.to_s() == Hash.name.to_s()
+                       response_to_hash(results,opts.merge(value_field:"Value",entity_type:entity_type)) 
+                     else
+                       results.map do |x|
+                         response_to_hash(x,opts.merge(value_field:"Value",entity_type:entity_type)) 
+                       end
                      end
                    rescue NoMethodError
                      []
