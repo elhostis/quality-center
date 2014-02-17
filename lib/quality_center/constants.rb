@@ -15,9 +15,7 @@ module QualityCenter
       }
       PREFIX   = '/qcbin/rest'
       DEFECTS  = '/domains/TEST/projects/AssessmentQualityGroup/defects'
-      DOMAIN   = 'TEST'
-      PROJECT  = 'AssessmentQualityGroup'
-      SCOPE    = "/domains/#{DOMAIN}/projects/#{PROJECT}"
+      SCOPE    = "/domains/%{domain}/projects/%{project}"
       ENTITIES = %w[ defects favorites releases resources requirements tests 
                      tasks task-logs release-cycles results test-sets 
                      test-set-folders test-instances analysis-items 
