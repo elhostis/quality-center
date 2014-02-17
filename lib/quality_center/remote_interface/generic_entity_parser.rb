@@ -64,8 +64,6 @@ module QualityCenter
                             key_process: :to_s,
                             val_process: :to_s
 
-        # TODO fix Bug here caused by HTTParty treating single-element arrays
-        # differently.  This only happens when using (page_size:1).
         root = response[opts[:field_name].pluralize][opts[:field_name]]
 
         # The definition of "emptiness" for a field.
